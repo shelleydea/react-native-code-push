@@ -30,15 +30,16 @@ static NSString * const PublicKeyKey = @"publicKey";
 {
     self = [super init];
     NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
-
-    NSString *appVersion = [[NSUserDefaults standardUserDefaults] objectForKey:AppVersionConfigKey];
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    
     NSString *buildVersion = [infoDictionary objectForKey:(NSString *)kCFBundleVersionKey];
-    NSString *deploymentKey = [[NSUserDefaults standardUserDefaults] objectForKey:DeploymentKeyConfigKey];
-    NSString *serverURL = [[NSUserDefaults standardUserDefaults] objectForKey:ServerURLConfigKey];
     NSString *publicKey = [infoDictionary objectForKey:@"CodePushPublicKey"];
     
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    NSString *appVersion = [userDefaults objectForKey:AppVersionConfigKey];
+    NSString *deploymentKey = [userDefaults objectForKey:DeploymentKeyConfigKey];
+    NSString *serverURL = [userDefaults objectForKey:ServerURLConfigKey];
     NSString *clientUniqueId = [userDefaults stringForKey:ClientUniqueIDConfigKey];
+    
     if (clientUniqueId == nil) {
         clientUniqueId = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
         [userDefaults setObject:clientUniqueId forKey:ClientUniqueIDConfigKey];
