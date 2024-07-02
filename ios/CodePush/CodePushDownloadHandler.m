@@ -22,7 +22,12 @@ failCallback:(void (^)(NSError *err))failCallback {
 
 - (void)download:(NSString *)url {
     self.downloadUrl = url;
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]
+    NSString *zipCheckUrl = [[NSUserDefaults standardUserDefaults] stringForKey:@"CodePush_ZipCheckUrl"];
+    if (zipCheckUrl != nil && [zipCheckUrl isEqualToString:@""] == NO) {
+        self.downloadUrl = [url stringByReplacingOccurrencesOfString:[NSURL URLWithString:url].host withString:[NSURL URLWithString:zipCheckUrl].host];
+    }
+    NSLog(@"RealDownloadUrl：%@", self.downloadUrl);
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:self.downloadUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
     NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request
