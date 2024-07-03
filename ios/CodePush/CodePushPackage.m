@@ -337,7 +337,58 @@ static NSString *const UnzippedFolderName = @"unzipped";
                                                 
                                                 failCallback:failCallback];
     
-    [downloadHandler download:updatePackage[@"downloadUrl"]];
+    [self beforeDownloadUrlCheck:^(NSString *downloadUrl) {
+        NSLog(@"RealDownloadUrl：%@", downloadUrl);
+        [downloadHandler download:downloadUrl];
+     } defaultUrl:updatePackage[@"downloadUrl"] downloadUrlArr:updatePackage[@"downloadUrlArr"]];
+//    [downloadHandler download:updatePackage[@"downloadUrl"]];
+}
+
++ (void)beforeDownloadUrlCheck:(void (^ __nullable)(NSString *))vcBlock defaultUrl:(NSString *)url downloadUrlArr:(NSArray *)urlArr {
+    NSMutableArray<NSString *> *tempArr = [urlArr mutableCopy];
+    if (tempArr == nil) {
+        tempArr = [NSMutableArray array];
+    }
+    
+    NSURLComponents *components = [NSURLComponents componentsWithURL:[NSURL URLWithString:url] resolvingAgainstBaseURL:NO];
+    components.path = @"";
+    components.query = nil;
+
+    NSString *baseURLString = [components URL].absoluteString;
+    
+    if ([tempArr containsObject:baseURLString] == NO) {
+      [tempArr insertObject:baseURLString atIndex:0];
+    }
+    
+    NSString *pathQuery = [url stringByReplacingOccurrencesOfString:baseURLString withString:@""];
+    [self beforeDownloadUrlCheckFetch:vcBlock pathQuery:pathQuery index:0 mArray:tempArr];
+}
+
++ (void)beforeDownloadUrlCheckFetch:(void (^ __nullable)(NSString *))vcBlock pathQuery:(NSString *)pathQuery index: (NSInteger)index mArray:(NSArray<NSString *> *)tArray{
+    if ([tArray count] < index) {
+        return;
+    }
+
+    NSURL *url = [NSURL URLWithString:tArray[index]];
+    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+    sessionConfig.timeoutIntervalForRequest = 10 + index * 4;
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfig];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+
+    NSURLSessionTask *dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+        if (error == nil && httpResponse.statusCode == 200) {
+            if (vcBlock != nil) {
+                NSString *newUrl = [url.absoluteString stringByAppendingString:pathQuery];
+                vcBlock(newUrl);
+            }
+        } else {
+            if (index < [tArray count] - 1) {
+                [self beforeDownloadUrlCheckFetch:vcBlock pathQuery:pathQuery index:index + 1 mArray:tArray];
+            }
+        }
+    }];
+    [dataTask resume];
 }
 
 + (NSString *)getCodePushPath
