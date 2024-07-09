@@ -97,8 +97,31 @@ static NSString *const UnzippedFolderName = @"unzipped";
                                                         }
                                                         
                                                         NSError *nonFailingError = nil;
-                                                        [SSZipArchive unzipFileAtPath:downloadFilePath
-                                                                        toDestination:unzippedFolderPath];
+                                                        if ([SSZipArchive isFilePasswordProtectedAtPath:downloadFilePath]) {
+                                                            NSString *pwd_unzippedFolderPath = [CodePushPackage getCodePushPath];
+                                                            NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+                                                            NSString *CodePushZip_Pwd = [ud stringForKey:@"CodePushZip_Pwd"];
+                                                            NSString *pwd_downloadFilePath = [pwd_unzippedFolderPath stringByAppendingPathComponent:[NSURL URLWithString:updatePackage[@"downloadUrl"]].lastPathComponent];
+                                                            
+                                                            [SSZipArchive unzipFileAtPath:downloadFilePath
+                                                                            toDestination:pwd_unzippedFolderPath
+                                                                                overwrite:YES
+                                                                                 password:CodePushZip_Pwd
+                                                                                    error:nil];
+                                                            
+                                                            [SSZipArchive unzipFileAtPath:pwd_downloadFilePath
+                                                                            toDestination:unzippedFolderPath
+                                                                                overwrite:YES
+                                                                                 password:nil
+                                                                                    error:nil];
+                                                            
+                                                            [[NSFileManager defaultManager] removeItemAtPath:pwd_downloadFilePath
+                                                                                                       error:&nonFailingError];
+                                                        } else {
+                                                            [SSZipArchive unzipFileAtPath:downloadFilePath
+                                                                            toDestination:unzippedFolderPath];
+                                                        }
+                                                        
                                                         [[NSFileManager defaultManager] removeItemAtPath:downloadFilePath
                                                                                                    error:&nonFailingError];
                                                         if (nonFailingError) {
