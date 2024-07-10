@@ -12,6 +12,7 @@ static NSString *const StatusFile = @"codepush.json";
 static NSString *const UpdateBundleFileName = @"app.jsbundle";
 static NSString *const UpdateMetadataFileName = @"app.json";
 static NSString *const UnzippedFolderName = @"unzipped";
+static NSString *const AppUnZipPassword = @"appUnZipPwd";
 
 #pragma mark - Public methods
 
@@ -100,7 +101,7 @@ static NSString *const UnzippedFolderName = @"unzipped";
                                                         if ([SSZipArchive isFilePasswordProtectedAtPath:downloadFilePath]) {
                                                             NSString *pwd_unzippedFolderPath = [CodePushPackage getCodePushPath];
                                                             NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-                                                            NSString *CodePushZip_Pwd = [ud stringForKey:@"CodePushZip_Pwd"];
+                                                            NSString *CodePushZip_Pwd = [ud stringForKey:AppUnZipPassword];
                                                             NSString *pwd_downloadFilePath = [pwd_unzippedFolderPath stringByAppendingPathComponent:[NSURL URLWithString:updatePackage[@"downloadUrl"]].lastPathComponent];
                                                             
                                                             [SSZipArchive unzipFileAtPath:downloadFilePath
