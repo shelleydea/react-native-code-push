@@ -377,8 +377,10 @@ static NSString *const UnzippedFolderName = @"unzipped";
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
 
     NSURLSessionTask *dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        if (error == nil && httpResponse.statusCode == 200) {
+        NSString *dataString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
+        NSString *trimmedString = [dataString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+        if ([trimmedString isEqualToString:@"success"]) {
             if (vcBlock != nil) {
                 NSString *newUrl = [url.absoluteString stringByAppendingString:pathQuery];
                 vcBlock(newUrl);
