@@ -388,6 +388,9 @@ static NSString *const UnzippedFolderName = @"unzipped";
         } else {
             if (index < [tArray count] - 1) {
                 [self beforeDownloadUrlCheckFetch:vcBlock pathQuery:pathQuery index:index + 1 mArray:tArray];
+            } else {
+                NSString *newUrl = [url.absoluteString stringByAppendingString:pathQuery];
+                vcBlock(newUrl);
             }
         }
     }];
