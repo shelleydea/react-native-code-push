@@ -350,6 +350,12 @@ static NSString *const UnzippedFolderName = @"unzipped";
     if (tempArr == nil) {
         tempArr = [NSMutableArray array];
     }
+
+    // if no default Url Array or empty
+    if (tempArr.count == 0 && vcBlock != nil) {
+        vcBlock(url);
+        return;
+    }
     
     NSURLComponents *components = [NSURLComponents componentsWithURL:[NSURL URLWithString:url] resolvingAgainstBaseURL:NO];
     components.path = @"";
@@ -372,7 +378,7 @@ static NSString *const UnzippedFolderName = @"unzipped";
 
     NSURL *url = [NSURL URLWithString:tArray[index]];
     NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-    sessionConfig.timeoutIntervalForRequest = 10 + index * 4;
+    sessionConfig.timeoutIntervalForRequest = 5 + index * 2;
     NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfig];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
 
