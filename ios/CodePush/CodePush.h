@@ -118,6 +118,8 @@
 @property (copy) void (^doneCallback)(BOOL);
 @property (copy) void (^failCallback)(NSError *err);
 @property NSString *downloadUrl;
+@property NSArray<NSString *> *downloadUrlArry;
+@property NSInteger downloadCurrentIndex;
 
 - (id)init:(NSString *)downloadFilePath
 operationQueue:(dispatch_queue_t)operationQueue
@@ -126,6 +128,7 @@ doneCallback:(void (^)(BOOL))doneCallback
 failCallback:(void (^)(NSError *err))failCallback;
 
 - (void)download:(NSString*)url;
+- (void)downloadURLS:(NSArray *)urlArr currentIndex:(NSInteger )currentIndex;
 
 @end
 

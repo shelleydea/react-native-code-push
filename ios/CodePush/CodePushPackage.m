@@ -338,69 +338,29 @@ static NSString *const UnzippedFolderName = @"unzipped";
                                                 
                                                 failCallback:failCallback];
     
-    [self beforeDownloadUrlCheck:^(NSString *downloadUrl) {
-        NSLog(@"RealDownloadUrl：%@", downloadUrl);
-        [downloadHandler download:downloadUrl];
-     } defaultUrl:updatePackage[@"downloadUrl"] downloadUrlArr:updatePackage[@"downloadUrlArr"]];
-//    [downloadHandler download:updatePackage[@"downloadUrl"]];
+    NSArray *downloadUrlArray = [self beforeDownloadUrl:updatePackage[@"downloadUrl"] downloadUrlArr:updatePackage[@"downloadUrlArr"]];
+    [downloadHandler downloadURLS:downloadUrlArray currentIndex:0];
 }
 
-+ (void)beforeDownloadUrlCheck:(void (^ __nullable)(NSString *))vcBlock defaultUrl:(NSString *)url downloadUrlArr:(NSArray *)urlArr {
-    NSMutableArray<NSString *> *tempArr = [urlArr mutableCopy];
-    if (tempArr == nil) {
-        tempArr = [NSMutableArray array];
-    }
-
-    // if no default Url Array or empty
-    if (tempArr.count == 0 && vcBlock != nil) {
-        vcBlock(url);
-        return;
-    }
++ (NSArray *)beforeDownloadUrl:(NSString *)url downloadUrlArr:(NSArray *)urlArr {
+    NSMutableArray<NSString *> *tempArr = [NSMutableArray arrayWithObject:url];
     
     NSURLComponents *components = [NSURLComponents componentsWithURL:[NSURL URLWithString:url] resolvingAgainstBaseURL:NO];
     components.path = @"";
     components.query = nil;
-
-    NSString *baseURLString = [components URL].absoluteString;
-    
-    if ([tempArr containsObject:baseURLString] == NO) {
-      [tempArr insertObject:baseURLString atIndex:0];
-    }
-    
+   
+    NSString *baseURLString = components.URL.absoluteString;
     NSString *pathQuery = [url stringByReplacingOccurrencesOfString:baseURLString withString:@""];
-    [self beforeDownloadUrlCheckFetch:vcBlock pathQuery:pathQuery index:0 mArray:tempArr];
-}
-
-+ (void)beforeDownloadUrlCheckFetch:(void (^ __nullable)(NSString *))vcBlock pathQuery:(NSString *)pathQuery index: (NSInteger)index mArray:(NSArray<NSString *> *)tArray{
-    if ([tArray count] < index) {
-        return;
-    }
-
-    NSURL *url = [NSURL URLWithString:tArray[index]];
-    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-    sessionConfig.timeoutIntervalForRequest = 5 + index * 2;
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfig];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-
-    NSURLSessionTask *dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        NSString *dataString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
-        NSString *trimmedString = [dataString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-
-        if ([trimmedString isEqualToString:@"success"]) {
-            if (vcBlock != nil) {
-                NSString *newUrl = [url.absoluteString stringByAppendingString:pathQuery];
-                vcBlock(newUrl);
-            }
-        } else {
-            if (index < [tArray count] - 1) {
-                [self beforeDownloadUrlCheckFetch:vcBlock pathQuery:pathQuery index:index + 1 mArray:tArray];
-            } else {
-                NSString *newUrl = [url.absoluteString stringByAppendingString:pathQuery];
-                vcBlock(newUrl);
-            }
+    
+    [urlArr enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSString *newUrlString = [obj stringByAppendingString:pathQuery];
+        if ([tempArr containsObject:newUrlString] == NO) {
+            [tempArr addObject:newUrlString];
         }
     }];
-    [dataTask resume];
+    
+    NSLog(@"%@", tempArr);
+    return tempArr;
 }
 
 + (NSString *)getCodePushPath
@@ -616,7 +576,7 @@ static NSString *const UnzippedFolderName = @"unzipped";
         return;
     }
     
-    NSString *currentPackageFolderPath = [self getCurrentPackageFolderPath:&error];        
+    NSString *currentPackageFolderPath = [self getCurrentPackageFolderPath:&error];
     if (!currentPackageFolderPath) {
         CPLog(@"Error getting current package folder path: %@", error);
         return;

@@ -20,6 +20,31 @@ failCallback:(void (^)(NSError *err))failCallback {
     return self;
 }
 
+
+
+- (void)downloadURLS:(NSArray *)urlArr currentIndex:(NSInteger)currentIndex {
+    self.downloadUrlArry = urlArr;
+    self.downloadCurrentIndex = currentIndex;
+    self.downloadUrl = self.downloadUrlArry[currentIndex];
+    NSLog(@"RealDownloadUrl：%@", self.downloadUrl);
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:self.downloadUrl]
+                                             cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                         timeoutInterval:60.0];
+    NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request
+                                                                  delegate:self
+                                                          startImmediately:NO];
+    if ([NSOperationQueue instancesRespondToSelector:@selector(setUnderlyingQueue:)]) {
+        NSOperationQueue *delegateQueue = [NSOperationQueue new];
+        delegateQueue.underlyingQueue = self.operationQueue;
+        [connection setDelegateQueue:delegateQueue];
+    } else {
+        [connection scheduleInRunLoop:[NSRunLoop mainRunLoop]
+                              forMode:NSDefaultRunLoopMode];
+    }
+
+    [connection start];
+}
+
 - (void)download:(NSString *)url {
     self.downloadUrl = url;
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]
@@ -45,14 +70,20 @@ failCallback:(void (^)(NSError *err))failCallback {
 - (NSCachedURLResponse *)connection:(NSURLConnection *)connection
                   willCacheResponse:(NSCachedURLResponse*)cachedResponse {
     // Return nil to indicate not necessary to store a cached response for this connection
+    NSLog(@"Current function: %s", __PRETTY_FUNCTION__);
     return nil;
 }
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
+    NSLog(@"Current function: %s", __PRETTY_FUNCTION__);
     if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
         NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
         if (statusCode >= 400) {
             [self.outputFileStream close];
+            if (self.downloadCurrentIndex < self.downloadUrlArry.count - 1) {
+                [self downloadURLS:self.downloadUrlArry currentIndex:self.downloadCurrentIndex + 1];
+                return;
+            }
             [connection cancel];
             NSError *err = [CodePushErrorUtils errorWithMessage:[NSString stringWithFormat: @"Received %ld response from %@", (long)statusCode, self.downloadUrl]];
             self.failCallback(err);
@@ -105,13 +136,24 @@ failCallback:(void (^)(NSError *err))failCallback {
 
 - (void)connection:(NSURLConnection*)connection didFailWithError:(NSError*)error
 {
+    NSLog(@"Current function: %s", __PRETTY_FUNCTION__);
+    if (self.downloadCurrentIndex < self.downloadUrlArry.count - 1) {
+        [self downloadURLS:self.downloadUrlArry currentIndex:self.downloadCurrentIndex + 1];
+        return;
+    }
     [self.outputFileStream close];
     self.failCallback(error);
 }
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection {
+    NSLog(@"Current function: %s", __PRETTY_FUNCTION__);
     [self.outputFileStream close];
     if (self.receivedContentLength < 1) {
+        if (self.downloadCurrentIndex < self.downloadUrlArry.count - 1) {
+            [self.outputFileStream open];
+            [self downloadURLS:self.downloadUrlArry currentIndex:self.downloadCurrentIndex + 1];
+            return;
+        }
         NSError *err = [CodePushErrorUtils errorWithMessage:[NSString stringWithFormat:@"Received empty response from %@", self.downloadUrl]];
         self.failCallback(err);
         return;
