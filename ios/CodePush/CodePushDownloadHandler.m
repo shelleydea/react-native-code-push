@@ -80,10 +80,6 @@ failCallback:(void (^)(NSError *err))failCallback {
         NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
         if (statusCode >= 400) {
             [self.outputFileStream close];
-            if (self.downloadCurrentIndex < self.downloadUrlArry.count - 1) {
-                [self downloadURLS:self.downloadUrlArry currentIndex:self.downloadCurrentIndex + 1];
-                return;
-            }
             [connection cancel];
             NSError *err = [CodePushErrorUtils errorWithMessage:[NSString stringWithFormat: @"Received %ld response from %@", (long)statusCode, self.downloadUrl]];
             self.failCallback(err);
